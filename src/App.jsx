@@ -1,30 +1,62 @@
+
+// React
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { MessageCircle } from "lucide-react"
-import { FaWhatsapp } from "react-icons/fa"
+
+// Components
+import { AppSidebar } from "./components/app-sidebar"
+import { NavMain } from "./components/nav-main"
+import { NavProjects } from "./components/nav-projects"
+import { NavUser } from "./components/nav-user"
+import { TeamSwitcher } from "./components/team-switcher"
+
+// UI Components
+import { Avatar } from "./components/ui/avatar"
+import { Breadcrumb } from "./components/ui/breadcrumb"
+import { Button } from "./components/ui/button"
+import { Collapsible } from "./components/ui/collapsible"
+import { DropdownMenu } from "./components/ui/dropdown-menu"
+import { Input } from "./components/ui/input"
+import { Separator } from "./components/ui/separator"
+import { Sheet } from "./components/ui/sheet"
+import { Sidebar, SidebarProvider } from "./components/ui/sidebar"
+import { Skeleton } from "./components/ui/skeleton"
+import { Tooltip } from "./components/ui/tooltip"
+
+// Hooks
+import { useIsMobile } from "./hooks/use-mobile"
+
+// Lib
+
+
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Contact from "./Contact";
+
+import LogoPage from "./LogoPage";
+import ServicesPage from "./ServicesPage";
+import ProductsPage from "./ProductsPage";
+import BlogPage from "./BlogPage";
+
 
 export default function App() {
-  const [count, setCount] = useState(0)
-
+  const [count, setCount] = useState(0);
+  const isMobile = useIsMobile ? useIsMobile() : false;
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow p-6 space-y-6 text-center">
-        <h1 className="text-2xl font-bold text-gray-900">whatsapp-api</h1>
-        <p className="text-sm text-gray-600">
-          Vite + React + Tailwind v3.4 + shadcn/ui + Lucide + React-icons
-        </p>
-
-        {/* Icons demo */}
-        <div className="flex items-center justify-center gap-4 text-emerald-600">
-          <MessageCircle className="w-8 h-8" />
-          <FaWhatsapp className="w-8 h-8" />
+    <Router>
+      <SidebarProvider>
+        <div className="flex w-full h-screen bg-gray-50 overflow-hidden">
+          <AppSidebar />
+          <main className="flex-1 h-full overflow-auto">
+            <Routes>
+              
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/logo" element={<LogoPage />} />
+              <Route path="/services" element={<ServicesPage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/blog" element={<BlogPage />} />
+            </Routes>
+          </main>
         </div>
-
-        {/* Button demo */}
-        <Button onClick={() => setCount((c) => c + 1)} className="w-full">
-          Clicks: {count}
-        </Button>
-      </div>
-    </div>
-  )
+      </SidebarProvider>
+    </Router>
+  );
 }
