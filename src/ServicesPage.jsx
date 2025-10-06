@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -146,25 +146,25 @@ export default function ServicesPage() {
   const goToNextPage = () => setCurrentPage(Math.min(totalPages, currentPage + 1));
 
   return (
-    <div className="h-full w-full bg-white">
-      <div className="w-full px-4">
+    <div className="min-h-screen bg-white pt-4 sm:pt-6">
+      <div className="px-4 sm:px-8 lg:px-12 xl:px-16 max-w-full overflow-x-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pb-4 sm:pb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pb-6 sm:pb-8">
           <h1 className="text-2xl sm:text-4xl font-bold text-gray-900">Services</h1>
         </div>
 
         {/* Header Controls */}
-        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 mb-4 sm:mb-6 w-full">
-          <div className="relative flex-grow sm:flex-grow-0">
+        <div className="flex flex-col gap-4 mb-6 w-full">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               placeholder="Search services..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 w-full sm:w-80 rounded-lg bg-white border-gray-200 text-base"
+              className="pl-10 w-80 rounded-lg bg-white border-gray-200 text-base"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -247,13 +247,13 @@ export default function ServicesPage() {
 
         {/* Main Content */}
         <div>
-          {/* Table Container */}
+          {/* Table Container - visible on all screen sizes */}
           <div className="bg-white rounded-lg border w-full">
             <div className="flex flex-col">
               {/* Table */}
-              <div className="overflow-x-auto -mx-4 sm:mx-0">
-                <div className="inline-block min-w-full align-middle">
-                  <table className="min-w-full divide-y divide-gray-200 text-left">
+              <div className="overflow-x-auto">
+                <div className="min-w-[600px]">
+                  <table className="w-full text-xs sm:text-sm divide-y divide-gray-200">
                     <thead>
                       <tr className="border-b">
                         <th className="px-4 py-3 w-10">
@@ -271,8 +271,8 @@ export default function ServicesPage() {
                           <th className="px-4 py-3 text-left font-semibold">Image</th>
                         )}
                         {columnVisibility.title && (
-                          <th 
-                            scope="col" 
+                          <th
+                            scope="col"
                             className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                             onClick={() => {
                               const sorted = [...services].sort((a, b) => a.title.localeCompare(b.title));
@@ -283,23 +283,23 @@ export default function ServicesPage() {
                           </th>
                         )}
                         {columnVisibility.description && (
-                          <th 
-                            scope="col" 
+                          <th
+                            scope="col"
                             className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                           >
                             Description
                           </th>
                         )}
                         {columnVisibility.createdDate && (
-                          <th 
-                            scope="col" 
+                          <th
+                            scope="col"
                             className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                           >
                             Created Date
                           </th>
                         )}
-                        <th 
-                          scope="col" 
+                        <th
+                          scope="col"
                           className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                         >
                           Actions

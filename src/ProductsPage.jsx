@@ -20,13 +20,11 @@ import {
   Tag,
   DollarSign,
   FileText,
-  Image as ImageIcon,
   Calendar,
 } from "lucide-react";
 
 // Sample data
 const initialCategories = [];
-
 const initialProducts = [];
 
 const columns = [
@@ -85,10 +83,10 @@ export default function ProductsPage() {
   const filteredProducts = products.filter((product) => {
     const searchLower = search.toLowerCase();
     return (
-      product.name.toLowerCase().includes(searchLower) ||
-      product.category.toLowerCase().includes(searchLower) ||
-      product.description.toLowerCase().includes(searchLower) ||
-      product.price.toString().includes(searchLower)
+      product.name?.toLowerCase().includes(searchLower) ||
+      product.category?.toLowerCase().includes(searchLower) ||
+      product.description?.toLowerCase().includes(searchLower) ||
+      product.price?.toString().includes(searchLower)
     );
   });
 
@@ -118,73 +116,13 @@ export default function ProductsPage() {
     }
   };
 
-  // Add Product form handler
-  const handleAddProduct = (e) => {
-    if (e) e.preventDefault();
-    if (!newProduct.name.trim()) return;
-    if (editMode && editingProduct) {
-      // Update existing product
-      setProducts(products.map((p) =>
-        getProductKey(p) === getProductKey(editingProduct)
-          ? { ...editingProduct, ...newProduct }
-          : p
-      ));
-      setEditMode(false);
-      setEditingProduct(null);
-    } else {
-      // Add new product
-      const product = {
-        ...newProduct,
-        id: Date.now(),
-        price: newProduct.discountPrice || newProduct.originalPrice,
-        createdDate: new Date().toLocaleDateString(),
-      };
-      setProducts([...products, product]);
-    }
-    setNewProduct({
-      name: "",
-      category: "Uncategorized",
-      originalPrice: 0,
-      discountPrice: 0,
-      description: "",
-    });
-    setShowProductModal(false);
-  };
-
   const handleSelect = (key) => {
     setSelected((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
     );
   };
 
-  // Category form handlers
-  const handleAddCategory = (e) => {
-    e.preventDefault();
-    if (newCategory.name.trim()) {
-      const category = {
-        id: Date.now(),
-        name: newCategory.name.trim(),
-        description: "", // Default empty description since we removed the input
-      };
-      setCategories([...categories, category]);
-      setNewCategory({ name: "" });
-      setShowCategoryModal(false);
-    }
-  };
-
-  const handleDeleteCategory = (categoryId) => {
-    const categoryToDelete = categories.find(cat => cat.id === categoryId);
-    if (window.confirm(`Are you sure you want to delete "${categoryToDelete.name}" category?`)) {
-      setCategories(categories.filter(cat => cat.id !== categoryId));
-      // Update products that have this category to "Uncategorized"
-      setProducts(products.map(product => 
-        product.category === categoryToDelete.name 
-          ? { ...product, category: "Uncategorized" }
-          : product
-      ));
-    }
-  };
-
+  // Calculate discount
   const calculateDiscount = (originalPrice, discountPrice) => {
     if (originalPrice <= discountPrice) return 0;
     return Math.round(((originalPrice - discountPrice) / originalPrice) * 100);
@@ -224,115 +162,177 @@ export default function ProductsPage() {
     }
   };
 
+  // Add Product form handler
+  const handleAddProduct = (e) => {
+    if (e) e.preventDefault();
+    if (!newProduct.name.trim()) return;
+    if (editMode && editingProduct) {
+      // Update existing product
+      setProducts(products.map((p) =>
+        getProductKey(p) === getProductKey(editingProduct)
+          ? { ...editingProduct, ...newProduct }
+          : p
+      ));
+      setEditMode(false);
+      setEditingProduct(null);
+    } else {
+      // Add new product
+      const product = {
+        ...newProduct,
+        id: Date.now(),
+        price: newProduct.discountPrice || newProduct.originalPrice,
+        createdDate: new Date().toLocaleDateString(),
+      };
+      setProducts([...products, product]);
+    }
+    setNewProduct({
+      name: "",
+      category: "Uncategorized",
+      originalPrice: 0,
+      discountPrice: 0,
+      description: "",
+    });
+    setShowProductModal(false);
+  };
+
+  // Category form handlers
+  const handleAddCategory = (e) => {
+    e.preventDefault();
+    if (newCategory.name.trim()) {
+      const category = {
+        id: Date.now(),
+        name: newCategory.name.trim(),
+        description: "",
+      };
+      setCategories([...categories, category]);
+      setNewCategory({ name: "" });
+      setShowCategoryModal(false);
+    }
+  };
+
+  const handleDeleteCategory = (categoryId) => {
+    const categoryToDelete = categories.find(cat => cat.id === categoryId);
+    if (window.confirm(`Are you sure you want to delete "${categoryToDelete.name}" category?`)) {
+      setCategories(categories.filter(cat => cat.id !== categoryId));
+      setProducts(products.map(product => 
+        product.category === categoryToDelete.name 
+          ? { ...product, category: "Uncategorized" }
+          : product
+      ));
+    }
+  };
+
   const allChecked = filteredProducts.length > 0 && filteredProducts.every((p) => selected.includes(getProductKey(p)));
   const someChecked = selected.length > 0 && !allChecked;
 
   return (
-    <div className="h-full w-full bg-white">
-      <div className="flex flex-col w-full bg-white items-start">
+    <div className="h-full w-full bg-white overflow-hidden flex flex-col">
+      <div className="flex flex-col w-full bg-white items-start px-4 sm:px-6 pb-6">
         <h1 className="text-2xl sm:text-4xl font-bold mb-4 sm:mb-6 text-left text-gray-800">
           Products
         </h1>
         
         {/* Header Controls */}
         <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 mb-4 sm:mb-6 w-full">
-            <div className="relative flex-grow sm:flex-grow-0">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search products..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 w-full sm:w-80 rounded-lg bg-white border-gray-200 text-base"
-              />
+          <div className="relative flex-grow sm:flex-grow-0">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search products..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 w-full sm:w-80 rounded-lg bg-white border-gray-200 text-base"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="font-medium flex items-center gap-2 whitespace-nowrap"
+                onClick={() => handleSelectAll(!allChecked)}
+              >
+                {allChecked ? 'Deselect All' : 'Select All'}
+              </Button>
+
+              {selected.length > 0 && (
+                <Button
+                  variant="destructive"
+                  size="default"
+                  className="font-medium whitespace-nowrap"
+                  onClick={handleBulkDelete}
+                >
+                  Delete ({selected.length})
+                </Button>
+              )}
             </div>
-            <div className="flex gap-2">
-              {/* Select All and Delete button section */}
-              <div className="flex items-center gap-2">
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="font-medium flex items-center gap-2"
-                  onClick={(e) => handleSelectAll(!allChecked)}
+                  className="flex items-center gap-2 font-medium whitespace-nowrap"
                 >
-                  {allChecked ? 'Deselect All' : 'Select All'}
+                  <SlidersHorizontal className="w-4 h-4" /> View
                 </Button>
-
-                {selected.length > 0 && (
-                  <Button
-                    variant="destructive"
-                    size="default"
-                    className="font-medium"
-                    onClick={handleBulkDelete}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-3 py-2 text-xs font-medium text-gray-500">
+                  Toggle columns
+                </div>
+                {columns.map((col) => (
+                  <DropdownMenuCheckboxItem
+                    key={col.key}
+                    checked={visibleColumns[col.key]}
+                    onCheckedChange={() =>
+                      setVisibleColumns((v) => ({
+                        ...v,
+                        [col.key]: !v[col.key],
+                      }))
+                    }
+                    className="capitalize"
                   >
-                    Delete ({selected.length})
-                  </Button>
-                )}
-              </div>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="flex items-center gap-2 font-medium"
-                  >
-                    <SlidersHorizontal className="w-4 h-4" /> View
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56">
-                  <div className="px-3 py-2 text-xs font-medium text-gray-500">
-                    Toggle columns
-                  </div>
-                  {columns.map((col) => (
-                    <DropdownMenuCheckboxItem
-                      key={col.key}
-                      checked={visibleColumns[col.key]}
-                      onCheckedChange={() =>
-                        setVisibleColumns((v) => ({
-                          ...v,
-                          [col.key]: !v[col.key],
-                        }))
-                      }
-                      className="capitalize"
-                    >
-                      {col.label}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button 
-                variant="outline" 
-                className="font-medium flex items-center gap-2"
-                onClick={() => setShowCategoryModal(true)}
-              >
-                <Tag className="w-4 h-4" />
-                Add Category
-              </Button>
-              <Button
-                className="bg-black border border-gray-300 text-white font-medium flex items-center gap-2"
-                onClick={() => {
-                  setEditMode(false);
-                  setEditingProduct(null);
-                  setNewProduct({
-                    name: "",
-                    category: "Uncategorized",
-                    originalPrice: 0,
-                    discountPrice: 0,
-                    description: "",
-                  });
-                  setShowProductModal(true);
-                }}
-              >
-                <Plus className="w-4 h-4" />
-                Add Product
-              </Button>
-            </div>
+                    {col.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <Button 
+              variant="outline" 
+              className="font-medium flex items-center gap-2 whitespace-nowrap"
+              onClick={() => setShowCategoryModal(true)}
+            >
+              <Tag className="w-4 h-4" />
+              Add Category
+            </Button>
+            
+            <Button
+              className="bg-black border border-gray-300 text-white font-medium flex items-center gap-2 whitespace-nowrap"
+              onClick={() => {
+                setEditMode(false);
+                setEditingProduct(null);
+                setNewProduct({
+                  name: "",
+                  category: "Uncategorized",
+                  originalPrice: 0,
+                  discountPrice: 0,
+                  description: "",
+                });
+                setShowProductModal(true);
+              }}
+            >
+              <Plus className="w-4 h-4" />
+              Add Product
+            </Button>
           </div>
+        </div>
 
-          {/* Products Table */}
-          <div className="bg-white rounded-lg border w-full">
-            <table className="w-full text-left">
+        {/* Products Table */}
+        <div className="w-full overflow-x-auto rounded-lg border">
+          <div className="min-w-[600px] sm:min-w-full">
+            <table className="w-full text-left text-xs sm:text-sm">
               <thead>
                 <tr className="text-xs font-semibold text-gray-700 bg-white border-b">
-                  <th className="px-4 py-3 w-10 rounded-tl-lg">
+                  <th className="sticky left-0 bg-white px-4 py-3 w-10 rounded-tl-lg">
                     <input
                       type="checkbox"
                       checked={allChecked}
@@ -432,7 +432,7 @@ export default function ProductsPage() {
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
-                            className="inline-flex items-center p-2 text-gray-500 rounded-lg hover:bg-gray-100  transition-colors"
+                            className="inline-flex items-center p-2 text-gray-500 rounded-lg hover:bg-gray-100 transition-colors"
                             title="Edit Product"
                             onClick={() => handleEditProduct(product)}
                           >
@@ -453,14 +453,16 @@ export default function ProductsPage() {
               </tbody>
             </table>
           </div>
+        </div>
 
-          {/* Table Footer */}
-          <div className="flex items-center mt-4 text-gray-500 text-sm w-full">
-            <span className="flex-1">
-              {selected.length} of {filteredProducts.length} row(s) selected.
-            </span>
-            <div className="flex items-center gap-2 ml-auto">
-              <span>Rows per page</span>
+        {/* Table Footer */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mt-4 text-gray-500 text-sm w-full px-4 sm:px-0">
+          <span className="order-2 sm:order-1 sm:flex-1">
+            {selected.length} of {filteredProducts.length} row(s) selected.
+          </span>
+          <div className="flex flex-wrap items-center gap-2 order-1 sm:order-2 w-full sm:w-auto sm:ml-auto">
+            <div className="flex items-center gap-2">
+              <span className="whitespace-nowrap">Rows per page</span>
               <select
                 className="border rounded-lg px-2 py-1 text-sm bg-white"
                 value={rowsPerPage}
@@ -470,52 +472,54 @@ export default function ProductsPage() {
                 <option value={20}>20</option>
                 <option value={50}>50</option>
               </select>
-              <span>Page {currentPage} of {totalPages || 1}</span>
-              <div className="flex gap-1">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="w-8 h-8"
-                  onClick={goToFirstPage}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronsLeft className="w-4 h-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="w-8 h-8"
-                  onClick={goToPreviousPage}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="w-8 h-8"
-                  onClick={goToNextPage}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="w-8 h-8"
-                  onClick={goToLastPage}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronsRight className="w-4 h-4" />
-                </Button>
-              </div>
+            </div>
+            <span className="whitespace-nowrap">Page {currentPage} of {totalPages || 1}</span>
+            <div className="flex gap-1 ml-auto sm:ml-0">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="w-8 h-8"
+                onClick={goToFirstPage}
+                disabled={currentPage === 1}
+              >
+                <ChevronsLeft className="w-4 h-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="w-8 h-8"
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="w-8 h-8"
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="w-8 h-8"
+                onClick={goToLastPage}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronsRight className="w-4 h-4" />
+              </Button>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Category Modal */}
+      {/* Category Modal */}
       {showCategoryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Manage Categories</h2>
             
             {/* Existing Categories */}
@@ -573,8 +577,8 @@ export default function ProductsPage() {
 
       {/* Product Modal */}
       {showProductModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">
               {editMode ? 'Edit Product' : 'Add New Product'}
             </h2>
@@ -625,7 +629,7 @@ export default function ProductsPage() {
                   type="number"
                   step="0.01"
                   value={newProduct.discountPrice}
-                  onChange={(e) => setNewProduct({...newProduct, discountPrice: parseFloat(e.target.value) })}
+                  onChange={(e) => setNewProduct({...newProduct, discountPrice: parseFloat(e.target.value)})}
                   placeholder="0.00"
                 />
               </div>
@@ -666,8 +670,8 @@ export default function ProductsPage() {
 
       {/* View Product Modal */}
       {viewProductModal && selectedProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Product Details</h2>
             <div className="space-y-3">
               <div>
@@ -733,8 +737,6 @@ export default function ProductsPage() {
           </div>
         </div>
       )}
-
-      </div>
     </div>
   );
 }
