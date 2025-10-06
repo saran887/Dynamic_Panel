@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { MapPin, ExternalLink, Check, X, Phone, Mail, MessageCircle, Send, User, Building } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-export default function Contact() {
+export default function Contact({ userId }) {
   const [formData, setFormData] = useState({
     email: "",
     mobileNumber: "",
@@ -208,7 +208,7 @@ export default function Contact() {
   const convertToEmbedUrl = (url) => {
     try {
       // Extract place/location info from Google Maps URL
-      const placeMatch = url.match(/place\/([^\/]+)/);
+      const placeMatch = url.match(/place\/([^/]+)/);
       const coordsMatch = url.match(/@([-\d.]+),([-\d.]+)/);
       
       if (placeMatch) {
@@ -274,7 +274,7 @@ export default function Contact() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Validate mobile numbers before submission
     const mobileValidationResult = validateIndianMobileNumber(formData.mobileNumber);
     const alternateMobileValidationResult = formData.alternateMobileNumber 
@@ -283,56 +283,71 @@ export default function Contact() {
     const whatsappValidationResult = formData.useSameNumber 
       ? mobileValidationResult 
       : validateIndianMobileNumber(formData.whatsappNumber);
-    
+
     setMobileValidation(mobileValidationResult);
     setAlternateMobileValidation(alternateMobileValidationResult);
     setWhatsappValidation(whatsappValidationResult);
-    
+
     // Check if location is provided and valid
     if (!formData.mapIframe.trim()) {
       alert("Please provide an embedded map URL (Google Maps embed URL or iframe HTML).");
       return;
     }
-    
+
     // Prevent submission if validation fails
     if (!mobileValidationResult.isValid || !whatsappValidationResult.isValid) {
       alert("Please fix the mobile number validation errors before submitting.");
       return;
     }
-    
+
     // Prevent submission if map URL is invalid
     if (formData.mapIframe.trim() && !mapValidation.isValid) {
       alert("Please provide a valid embedded map URL or iframe HTML.");
       return;
     }
-    
-    console.log("Form Data:", formData);
-    setIsSubmitted(true);
-    // Here you can add form submission logic
-    alert("Contact information submitted!");
+
+    // Prepare contact data for backend
+    const contactData = {
+      userId,
+      email: formData.email,
+      mobileNumber: formData.mobileNumber,
+      alternateMobileNumber: formData.alternateMobileNumber,
+      whatsappNumber: formData.whatsappNumber,
+      mapUrl: mapValidation.extractedUrl || formData.mapUrl
+    };
+
+    // Send to backend
+    fetch('http://localhost:3001/api/contacts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(contactData)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.id) {
+          setIsSubmitted(true);
+          alert('Contact information submitted!');
+        } else {
+          alert('Failed to submit contact: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(() => alert('Server error submitting contact'));
   };
 
   return (
-    <div className="min-h-screen bg-white -mt-4">
-      <div className="w-full h-full">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-          <div className="text-left">
-            <h1 className="text-4xl font-bold mb-4 text-gray-800">Contact</h1>
-          </div>
+    <div className="min-h-screen bg-white">
+      <div className="px-4 sm:px-6 lg:container lg:px-8 lg:mx-auto max-w-full">
+        <div className="py-8">
+          <h2 className="text-2xl sm:text-4xl font-bold text-gray-900">Contact</h2>
         </div>
-      </div>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        {!isSubmitted ? (
-          /* Contact Form */
-          <div className="bg-white rounded-xl  p-8 border border-gray-100">
-            <div className="mb-8">
-              <p className="text-gray-600">Fill out the form below with your contact details and location.</p>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="mx-auto w-full max-w-3xl border border-gray-150 bg-white shadow-lg rounded-lg p-4 sm:p-8 space-y-8 overflow-x-auto">
+          {!isSubmitted ? (
+            <div>
+              <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Email Field */}
-                <div>
-                  <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
-                    <div className="flex items-center gap-2">
+                <div className="space-y-3">
+                  <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-3">
+                    <div className="flex items-center gap-3">
                       <Mail size={16} className="text-gray-500" />
                       Email Address *
                     </div>
@@ -348,99 +363,92 @@ export default function Contact() {
                   />
                 </div>
 
-                {/* Phone Numbers Section */}
-                <div className="space-y-6">
-                  {/* Mobile Numbers Row */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Primary Mobile Number */}
-                    <div>
-                      <label htmlFor="mobileNumber" className="block text-sm font-semibold text-gray-700 mb-2">
-                        <div className="flex items-center gap-2">
-                          <Phone size={16} className="text-gray-500" />
-                          Mobile Number *
-                        </div>
-                      </label>
-                      <Input
-                        type="tel"
-                        id="mobileNumber"
-                        name="mobileNumber"
-                        value={formData.mobileNumber}
-                        onChange={handleInputChange}
-                        required
-                        className={!mobileValidation.isValid ? 'border-red-300 focus:ring-red-500' : ''}
-                        placeholder="+91 98765 43210"
-                      />
-                      {!mobileValidation.isValid && (
-                        <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                          <X size={14} />
-                          {mobileValidation.message}
-                        </p>
-                      )}
-                      {mobileValidation.isValid && formData.mobileNumber && (
-                        <p className="mt-2 text-sm text-green-600 flex items-center gap-1">
-                          <Check size={14} />
-                          Valid Indian mobile number
-                        </p>
-                      )}
-                      {/* Checkbox for using same number for WhatsApp */}
-                      <div className="mt-2">
-                        <label className="inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.useSameNumber}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              setFormData(prev => ({
-                                ...prev,
-                                useSameNumber: checked,
-                                whatsappNumber: checked ? prev.mobileNumber : ""
-                              }));
-                            }}
-                            className="rounded border-gray-300 text-blue-600 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 mr-2"
-                          />
-                          <span className="text-sm text-gray-600">Use same number for WhatsApp</span>
-                        </label>
+                {/* Mobile Number Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Primary Mobile Number */}
+                  <div className="space-y-3">
+                    <label htmlFor="mobileNumber" className="block text-sm font-semibold text-gray-700 mb-3">
+                      <div className="flex items-center gap-3">
+                        <Phone size={16} className="text-gray-500" />
+                        Mobile Number *
                       </div>
-                    </div>
-
-                    {/* Alternate Mobile Number */}
-                    <div>
-                      <label htmlFor="alternateMobileNumber" className="block text-sm font-semibold text-gray-700 mb-2">
-                        <div className="flex items-center gap-2">
-                          <Phone size={16} className="text-gray-500" />
-                          Alternate Mobile Number
-                        </div>
-                      </label>
-                      <Input
-                        type="tel"
-                        id="alternateMobileNumber"
-                        name="alternateMobileNumber"
-                        value={formData.alternateMobileNumber}
-                        onChange={handleInputChange}
-                        className={!alternateMobileValidation.isValid ? 'border-red-300 focus:ring-red-500' : ''}
-                        placeholder="+91 98765 43210"
-                      />
-                      {!alternateMobileValidation.isValid && (
-                        <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                          <X size={14} />
-                          {alternateMobileValidation.message}
-                        </p>
-                      )}
-                      {alternateMobileValidation.isValid && formData.alternateMobileNumber && (
-                        <p className="mt-2 text-sm text-green-600 flex items-center gap-1">
-                          <Check size={14} />
-                          Valid Indian mobile number
-                        </p>
-                      )}
-                    </div>
+                    </label>
+                    <Input
+                      type="tel"
+                      id="mobileNumber"
+                      name="mobileNumber"
+                      value={formData.mobileNumber}
+                      onChange={handleInputChange}
+                      required
+                      className={!mobileValidation.isValid ? 'border-red-300 focus:ring-red-500' : ''}
+                      placeholder="+91 98765 43210"
+                    />
+                    {!mobileValidation.isValid && (
+                      <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                        <X size={14} />
+                        {mobileValidation.message}
+                      </p>
+                    )}
+                    {mobileValidation.isValid && formData.mobileNumber && (
+                      <p className="mt-2 text-sm text-green-600 flex items-center gap-1">
+                        <Check size={14} />
+                        Valid Indian mobile number
+                      </p>
+                    )}
                   </div>
 
-                  {/* WhatsApp Section */}                {/* WhatsApp Number */}
+                  {/* Alternate Mobile Number */}
                   <div>
-                    <label htmlFor="whatsappNumber" className="block text-sm font-semibold text-gray-700 mb-2">
-                      <div className="flex items-center gap-2">
+                    <label htmlFor="alternateMobileNumber" className="block text-sm font-semibold text-gray-700 mb-3">
+                      <div className="flex items-center gap-3">
+                        <Phone size={16} className="text-gray-500" />
+                        Alternate Mobile Number
+                      </div>
+                    </label>
+                    <Input
+                      type="tel"
+                      id="alternateMobileNumber"
+                      name="alternateMobileNumber"
+                      value={formData.alternateMobileNumber}
+                      onChange={handleInputChange}
+                      className={!alternateMobileValidation.isValid ? 'border-red-300 focus:ring-red-500' : ''}
+                      placeholder="+91 98765 43210"
+                    />
+                    {!alternateMobileValidation.isValid && (
+                      <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                        <X size={14} />
+                        {alternateMobileValidation.message}
+                      </p>
+                    )}
+                    {alternateMobileValidation.isValid && formData.alternateMobileNumber && (
+                      <p className="mt-2 text-sm text-green-600 flex items-center gap-1">
+                        <Check size={14} />
+                        Valid Indian mobile number
+                      </p>
+                    )}
+                  </div>
+                  
+
+                  {/* WhatsApp Number */}
+                  <div className="space-y-3">
+                    {/* Same Number Checkbox */}
+                    <div className="mb-4">
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="useSameNumber"
+                          checked={formData.useSameNumber}
+                          onChange={handleInputChange}
+                          className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-600">Use same as mobile number</span>
+                      </label>
+                    </div>
+
+                    <label htmlFor="whatsappNumber" className="block text-sm font-semibold text-gray-700 mb-3">
+                      <div className="flex items-center gap-3">
                         <MessageCircle size={16} className="text-gray-500" />
-                        WhatsApp Number {formData.useSameNumber ? "(Auto-filled)" : "*"}
+                        WhatsApp Number *
                       </div>
                     </label>
                     <Input
@@ -448,9 +456,9 @@ export default function Contact() {
                       id="whatsappNumber"
                       name="whatsappNumber"
                       value={formData.whatsappNumber}
-                      disabled={formData.useSameNumber}
                       onChange={handleInputChange}
-                      required={!formData.useSameNumber}
+                      required
+                      disabled={formData.useSameNumber}
                       className={`${
                         formData.useSameNumber 
                           ? 'bg-gray-100 cursor-not-allowed' 
@@ -479,16 +487,13 @@ export default function Contact() {
                       </p>
                     )}
 
-                    {/* Same Number Checkbox */}
-                    
                   </div>
-
                 </div>
 
                 {/* Map Embed Field */}
-                <div>
-                  <label htmlFor="mapIframe" className="block text-sm font-semibold text-gray-700 mb-2">
-                    <div className="flex items-center gap-2">
+                <div className="space-y-3">
+                  <label htmlFor="mapIframe" className="block text-sm font-semibold text-gray-700 mb-3">
+                    <div className="flex items-center gap-3">
                       <MapPin size={16} className="text-gray-500" />
                       Embedded Map URL *
                     </div>
@@ -584,73 +589,75 @@ export default function Contact() {
                   
                   Submit
                 </button>
+
               </form>
-          </div>
-        ) : (
-          /* Map Display After Submission */
-          <div className="space-y-6">
-            <div className="bg-white border border-green-200 rounded-xl p-6">
-              <div className="flex items-center mb-4">
-                <div className="bg-white p-3 rounded-full">
-                  <Check className="w-6 h-6 text-green-600" />
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-xl font-bold text-green-800">Contact Information Submitted!</h3>
-                  <p className="text-green-600">Thank you for providing your details and location.</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setIsSubmitted(false);
-                  setFormData({
-                    email: "",
-                    mobileNumber: "",
-                    whatsappNumber: "",
-                    useSameNumber: false,
-                    mapUrl: "",
-                    mapIframe: ""
-                  });
-                  setMapValidation({
-                    isValid: false,
-                    isEmbedUrl: false,
-                    extractedUrl: "",
-                    message: ""
-                  });
-                  setShowMapPreview(false);
-                  setMobileValidation({ isValid: true, message: "" });
-                  setWhatsappValidation({ isValid: true, message: "" });
-                }}
-                className="w-full mt-4 bg-white hover:bg-gray-50 text-green-800 font-semibold py-3 px-4 rounded-lg border border-green-300 hover:border-green-400 transition-all duration-200"
-              >
-                Submit Another Form
-              </button>
             </div>
-            
-            {/* Display the embedded map */}
-            {mapValidation.isValid && mapValidation.extractedUrl && (
-              <div className="bg-white rounded-xl  overflow-hidden border border-gray-100">
-                <div className="bg-white px-6 py-4 border-b border-gray-200">
-                  <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <MapPin size={20} className="text-blue-600" />
-                    Your Location
-                  </h4>
+          ) : (
+            /* Map Display After Submission */
+            <div className="space-y-6">
+              <div className="bg-white border border-green-200 rounded-xl p-6">
+                <div className="flex items-center mb-4">
+                  <div className="bg-white p-3 rounded-full">
+                    <Check className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-xl font-bold text-green-800">Contact Information Submitted!</h3>
+                    <p className="text-green-600">Thank you for providing your details and location.</p>
+                  </div>
                 </div>
-                <div className="aspect-video">
-                  <iframe
-                    src={mapValidation.extractedUrl}
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen=""
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    title="Your Location"
-                  ></iframe>
-                </div>
+                <button
+                  onClick={() => {
+                    setIsSubmitted(false);
+                    setFormData({
+                      email: "",
+                      mobileNumber: "",
+                      alternateMobileNumber: "",
+                      whatsappNumber: "",
+                      useSameNumber: false,
+                      mapUrl: "",
+                      mapIframe: ""
+                    });
+                    setMapValidation({
+                      isValid: false,
+                      isEmbedUrl: false,
+                      extractedUrl: "",
+                      message: ""
+                    });
+                    setShowMapPreview(false);
+                    setMobileValidation({ isValid: true, message: "" });
+                    setWhatsappValidation({ isValid: true, message: "" });
+                  }}
+                  className="w-full mt-4 bg-white hover:bg-gray-50 text-green-800 font-semibold py-3 px-4 rounded-lg border border-green-300 hover:border-green-400 transition-all duration-200"
+                >
+                  Submit Another Form
+                </button>
               </div>
-            )}
-          </div>
-        )}
+              {/* Display the embedded map */}
+              {mapValidation.isValid && mapValidation.extractedUrl && (
+                <div className="bg-white rounded-xl overflow-hidden border border-gray-100 mt-8">
+                  <div className="bg-white px-6 py-4 border-b border-gray-200">
+                    <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                      <MapPin size={20} className="text-blue-600" />
+                      Your Location
+                    </h4>
+                  </div>
+                  <div className="aspect-video">
+                    <iframe
+                      src={mapValidation.extractedUrl}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen=""
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="Your Location"
+                    ></iframe>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

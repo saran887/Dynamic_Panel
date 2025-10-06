@@ -146,22 +146,22 @@ export default function ServicesPage() {
   const goToNextPage = () => setCurrentPage(Math.min(totalPages, currentPage + 1));
 
   return (
-    <div className="min-h-screen bg-white pt-6 sm:pt-12">
-      <div className="px-4 sm:px-8 lg:px-12 xl:px-16">
+    <div className="h-full w-full bg-white">
+      <div className="w-full px-4">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pb-6 sm:pb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pb-4 sm:pb-6">
           <h1 className="text-2xl sm:text-4xl font-bold text-gray-900">Services</h1>
         </div>
 
         {/* Header Controls */}
-        <div className="flex flex-row justify-between items-center gap-4 mb-6 w-full">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 mb-4 sm:mb-6 w-full">
+          <div className="relative flex-grow sm:flex-grow-0">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               placeholder="Search services..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 w-80 rounded-lg bg-white border-gray-200 text-base"
+              className="pl-10 w-full sm:w-80 rounded-lg bg-white border-gray-200 text-base"
             />
           </div>
           <div className="flex gap-2">

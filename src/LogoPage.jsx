@@ -379,14 +379,15 @@ export default function LogoPage() {
   };
 
   return (
-    <div className="flex flex-col w-full min-h-screen" onClick={handleGlobalClick}>
-      <div className="w-full max-w-6xl mx-auto" onClick={(e) => e.stopPropagation()}>
-        <h1 className="text-4xl font-bold mb-8 text-left text-gray-800">Logo</h1>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+    <div className="h-full w-full bg-white" onClick={handleGlobalClick}>
+      <div className="w-full px-4 sm:px-6 lg:container lg:mx-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="py-4 sm:py-8">
+          <h1 className="text-2xl sm:text-4xl font-bold text-gray-900">Logo</h1>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-8 mb-8">
           {/* Main Logo Upload Section */}
           <div className="md:col-span-3 border border-gray-200 rounded-lg">
-            <div className="bg-white rounded-lg border border-gray-200 p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
               <h2 className="text-2xl font-semibold mb-4 text-gray-700 pb-2">Upload Logo</h2>
           
               <input

@@ -1,4 +1,3 @@
-
 // React
 import { useState } from "react"
 
@@ -18,7 +17,7 @@ import { DropdownMenu } from "./components/ui/dropdown-menu"
 import { Input } from "./components/ui/input"
 import { Separator } from "./components/ui/separator"
 import { Sheet } from "./components/ui/sheet"
-import { Sidebar, SidebarProvider } from "./components/ui/sidebar"
+import { Sidebar, SidebarProvider, SidebarTrigger } from "./components/ui/sidebar"
 import { Skeleton } from "./components/ui/skeleton"
 import { Tooltip } from "./components/ui/tooltip"
 
@@ -38,26 +37,38 @@ import BlogPage from "./BlogPage";
 
 
 export default function App() {
-  const [count, setCount] = useState(0);
+  const [user, setUser] = useState(null);
   const isMobile = useIsMobile ? useIsMobile() : false;
+
   return (
     <Router>
-      <SidebarProvider>
-        <div className="flex w-full h-screen overflow-hidden">
-          <AppSidebar />
-          <Separator orientation="vertical" className="h-full" />
-          <main className="flex-1 h-full overflow-auto bg-white p-6">
-            <Routes>
-              <Route path="/" element={<Navigate to="/logo" replace />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/logo" element={<LogoPage />} />
-              <Route path="/services" element={<ServicesPage />} />
-              <Route path="/products" element={<ProductsPage />} />
-              <Route path="/blog" element={<BlogPage />} />
-            </Routes>
-          </main>
-        </div>
-      </SidebarProvider>
+      <Routes>
+        <Route
+          path="/*"
+          element={
+            <SidebarProvider>
+              <div className="flex w-full h-screen overflow-hidden bg-white">
+                {/* Mobile sidebar trigger */}
+                <div className="md:hidden fixed top-4 left-4 z-50">
+                  <SidebarTrigger />
+                </div>
+                <AppSidebar />
+                <Separator orientation="vertical" className="h-full hidden md:block" />
+                <main className="flex-1 h-full overflow-auto bg-white p-4 md:p-6 pt-16 md:pt-6">
+                  <Routes>
+                    <Route path="/contact" element={<Contact userId={user?.id} />} />
+                    <Route path="/logo" element={<LogoPage />} />
+                    <Route path="/services" element={<ServicesPage />} />
+                    <Route path="/products" element={<ProductsPage />} />
+                    <Route path="/blog" element={<BlogPage />} />
+                    <Route path="*" element={<Navigate to="/contact" replace />} />
+                  </Routes>
+                </main>
+              </div>
+            </SidebarProvider>
+          }
+        />
+      </Routes>
     </Router>
   );
 }

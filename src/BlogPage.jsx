@@ -127,21 +127,21 @@ export default function BlogPage() {
   };
 
   return (
-    <div className="w-full h-full p-8 flex flex-col bg-white">
+    <div className="w-full h-full flex flex-col bg-white">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-4">
         <h1 className="text-2xl sm:text-4xl font-bold text-gray-900">Blogs</h1>
       </div>
 
       {/* Header Controls */}
-      <div className="flex flex-row justify-between items-center gap-4 mb-6 w-full">
-        <div className="relative">
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 mb-4 sm:mb-6 w-full">
+        <div className="relative flex-grow sm:flex-grow-0">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
             placeholder="Search blogs..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 w-80 rounded-lg bg-white border-gray-200 text-base"
+            className="pl-10 w-full sm:w-80 rounded-lg bg-white border-gray-200 text-base"
           />
         </div>
         <div className="flex gap-2">
