@@ -24,7 +24,7 @@ export function TeamSwitcher({
           size="lg"
           className="cursor-default">
           <div className="">
-            {React.createElement(activeTeam.logo, { className: "size-20 color-black" })}
+            {React.createElement(activeTeam.logo, { className: "w-48 h-20 flex items-center justify-center" })}
           </div>
         </SidebarMenuButton>
       </SidebarMenuItem>

@@ -1,4 +1,80 @@
 import React, { useState, useRef } from "react";
+import { 
+  MenuSquare,
+  ArrowDown, 
+  Bookmark, 
+  Smartphone, 
+  TabletSmartphone,
+  Layout,
+  ChevronDown,
+  Monitor,
+  Image
+} from "lucide-react";
+
+const resizeImage = (file, maxWidth, maxHeight) => {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    
+    // Create object URL for the file
+    const objectUrl = URL.createObjectURL(file);
+    
+    // Cleanup function to prevent memory leaks
+    const cleanup = () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+    
+    img.onload = () => {
+      cleanup();
+      
+      // Calculate dimensions
+      let width = img.width;
+      let height = img.height;
+
+      // Maintain aspect ratio while resizing
+      if (width > maxWidth) {
+        height = Math.round(height * (maxWidth / width));
+        width = maxWidth;
+      }
+      if (height > maxHeight) {
+        width = Math.round(width * (maxHeight / height));
+        height = maxHeight;
+      }
+
+      // Create canvas and resize the image
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Convert to blob and create new file
+      canvas.toBlob(
+        (blob) => {
+          const resizedFile = new File([blob], file.name, {
+            type: file.type,
+            lastModified: Date.now()
+          });
+
+          resolve({
+            file: resizedFile,
+            width,
+            height,
+            dataUrl: canvas.toDataURL(file.type)
+          });
+        },
+        file.type
+      );
+    };
+
+    img.onerror = () => {
+      cleanup();
+      reject(new Error('Failed to load image'));
+    };
+    
+    img.src = objectUrl;
+  });
+};
 
 export default function LogoPage() {
   const [uploadedLogo, setUploadedLogo] = useState(null);
@@ -12,33 +88,73 @@ export default function LogoPage() {
   const [dragActive, setDragActive] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-  const fileInputRef = useRef(null);
+  const mainLogoInputRef = useRef(null);
+  const faviconInputRef = useRef(null);
 
   const logoTypes = [
-    { key: 'header', label: 'Header', icon: '🏠', description: 'Main website header logo' },
-    { key: 'footer', label: 'Footer', icon: '⬇️', description: 'Website footer logo' },
-    { key: 'favicon', label: 'Favicon', icon: '🔖', description: 'Browser tab icon (16x16 or 32x32)' },
-    { key: 'mobileHeader', label: 'Mobile Header', icon: '📱', description: 'Mobile version header logo' },
-    { key: 'mobileFooter', label: 'Mobile Footer', icon: '📲', description: 'Mobile version footer logo' }
+    { key: 'header', label: 'Header', icon: MenuSquare, description: 'Main website header logo' },
+    { key: 'footer', label: 'Footer', icon: Monitor, description: 'Website footer logo' },
+    { key: 'mobileHeader', label: 'Mobile Header', icon: Smartphone, description: 'Mobile version header logo' },
+    { key: 'mobileFooter', label: 'Mobile Footer', icon: TabletSmartphone, description: 'Mobile version footer logo' }
   ];
 
-  const handleFileUpload = (file) => {
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
+  const validateMainLogo = (file) => {
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/svg+xml'];
+    if (!file) return { valid: false, message: 'No file selected' };
+    if (!allowedTypes.includes(file.type)) {
+      return { valid: false, message: 'Please upload a valid image file (PNG, JPG, JPEG, GIF, SVG)' };
+    }
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      return { valid: false, message: 'File size should be less than 5MB' };
+    }
+    return { valid: true };
+  };
+
+  const handleMainLogoUpload = async (file, specificLocation = null) => {
+    const validation = validateMainLogo(file);
+    if (validation.valid) {
+      try {
+        // Resize image if it's too large (max 1200x1200)
+        const resized = await resizeImage(file, 1200, 1200);
+        
         const logoData = {
-          file: file,
-          url: e.target.result,
+          file: resized.file,
+          url: resized.dataUrl,
           name: file.name,
-          size: file.size,
+          size: resized.file.size,
           type: file.type,
+          dimensions: `${resized.width}x${resized.height}`,
           uploadDate: new Date().toLocaleDateString()
         };
-        setUploadedLogo(logoData);
-      };
-      reader.readAsDataURL(file);
+        
+        // If replacing a specific location's logo
+        if (specificLocation) {
+          setLogoAssignments(prev => ({
+            ...prev,
+            [specificLocation]: logoData
+          }));
+        } else {
+          // Normal upload - set as main logo and update all assignments
+          setUploadedLogo(logoData);
+          
+          // Update all assigned locations except favicon with the new logo
+          setLogoAssignments(prev => {
+            const updatedAssignments = { ...prev };
+            Object.keys(prev).forEach(key => {
+              if (prev[key] !== null && key !== 'favicon') {
+                updatedAssignments[key] = logoData;
+              }
+            });
+            return updatedAssignments;
+          });
+        }
+      } catch (error) {
+        alert('Error processing image. Please try another file.');
+        console.error('Error resizing image:', error);
+      }
     } else {
-      alert('Please upload a valid image file (PNG, JPG, JPEG, GIF, SVG)');
+      alert(validation.message);
     }
   };
 
@@ -48,7 +164,7 @@ export default function LogoPage() {
     setDragActive(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileUpload(e.dataTransfer.files[0]);
+      handleMainLogoUpload(e.dataTransfer.files[0]);
     }
   };
 
@@ -62,11 +178,91 @@ export default function LogoPage() {
     }
   };
 
-  const handleFileInput = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFileUpload(e.target.files[0]);
+  const handleFaviconUpload = async (file) => {
+    if (!file) return;
+    
+    const validateFavicon = (file) => {
+      if (!file) return { valid: false, message: 'No file selected' };
+      if (file.type !== 'image/svg+xml' && file.type !== 'image/png') {
+        return { valid: false, message: 'Please upload only SVG or PNG files for favicon' };
+      }
+      if (file.size > 500 * 1024) {
+        return { valid: false, message: 'Favicon size should be less than 500KB' };
+      }
+      return { valid: true };
+    };
+
+    const validation = validateFavicon(file);
+    if (validation.valid) {
+      try {
+        let logoData;
+        // Don't resize SVG files
+        if (file.type === 'image/svg+xml') {
+          const reader = new FileReader();
+          return new Promise((resolve, reject) => {
+            reader.onload = (e) => {
+              logoData = {
+                file: file,
+                url: e.target.result,
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                uploadDate: new Date().toLocaleDateString()
+              };
+              setLogoAssignments(prev => ({
+                ...prev,
+                favicon: logoData
+              }));
+              resolve();
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        } else {
+          // Resize PNG files to 32x32
+          const resized = await resizeImage(file, 32, 32);
+          logoData = {
+            file: resized.file,
+            url: resized.dataUrl,
+            name: file.name,
+            size: resized.file.size,
+            type: file.type,
+            dimensions: `${resized.width}x${resized.height}`,
+            uploadDate: new Date().toLocaleDateString()
+          };
+          setLogoAssignments(prev => ({
+            ...prev,
+            favicon: logoData
+          }));
+        }
+      } catch (error) {
+        alert('Error processing favicon. Please try another file.');
+        console.error('Error processing favicon:', error);
+      }
+    } else {
+      alert(validation.message);
     }
   };
+
+  const handleFaviconInput = async (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const file = e.target.files?.[0];
+    if (file) {
+      await handleFaviconUpload(file);
+    }
+  };
+
+  const handleMainLogoInput = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const file = e.target.files?.[0];
+    if (file) {
+      handleMainLogoUpload(file);
+    }
+  };
+
+
 
   const assignLogoToType = (logoType) => {
     if (uploadedLogo) {
@@ -84,19 +280,33 @@ export default function LogoPage() {
     }));
   };
 
-  const clearAllLogos = () => {
-    setLogoAssignments({
-      header: null,
-      footer: null,
-      favicon: null,
-      mobileHeader: null,
-      mobileFooter: null
+  const clearAllLogos = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    setLogoAssignments(prev => {
+      const newState = { ...prev };
+      // Only clear non-favicon assignments
+      ['header', 'footer', 'mobileHeader', 'mobileFooter'].forEach(key => {
+        newState[key] = null;
+      });
+      return newState;
     });
   };
 
   const deleteUploadedLogo = () => {
     setUploadedLogo(null);
-    clearAllLogos();
+    setLogoAssignments(prev => ({
+      ...prev,
+      header: null,
+      footer: null,
+      mobileHeader: null,
+      mobileFooter: null,
+      // Keep favicon state unchanged
+      favicon: prev.favicon
+    }));
     setShowDeleteConfirm(null);
   };
 
@@ -109,7 +319,15 @@ export default function LogoPage() {
   };
 
   const deleteLogoFromLocation = (logoType) => {
-    removeLogoFromType(logoType);
+    if (logoType === 'main') {
+      if (window.confirm('Are you sure you want to delete the main logo?')) {
+        deleteUploadedLogo();
+      }
+    } else if (logoType === 'favicon') {
+      if (window.confirm('Are you sure you want to remove the favicon?')) {
+        removeLogoFromType(logoType);
+      }
+    }
     setShowDeleteConfirm(null);
   };
 
@@ -147,212 +365,282 @@ export default function LogoPage() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const handleGlobalClick = (e) => {
+    // Only handle clicks on the background itself, not its children
+    if (e.target === e.currentTarget) {
+      e.stopPropagation();
+      if (showDeleteConfirm) {
+        setShowDeleteConfirm(null);
+      }
+      if (editingLocation) {
+        setEditingLocation(null);
+      }
+    }
+  };
+
   return (
-    <div className="w-full h-full p-8 bg-gray-50 min-h-screen">
-      <div className="w-full max-w-6xl mx-auto">
+    <div className="flex flex-col w-full min-h-screen" onClick={handleGlobalClick}>
+      <div className="w-full max-w-6xl mx-auto" onClick={(e) => e.stopPropagation()}>
         <h1 className="text-4xl font-bold mb-8 text-left text-gray-800">Logo</h1>
         
-        {/* Upload Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-          <h2 className="text-2xl font-semibold mb-4 text-gray-700 border-b pb-2">Upload Logo</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          {/* Main Logo Upload Section */}
+          <div className="md:col-span-3 border border-gray-200 rounded-lg">
+            <div className="bg-white rounded-lg border border-gray-200 p-6" onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-2xl font-semibold mb-4 text-gray-700 pb-2">Upload Logo</h2>
           
-          {/* Drag & Drop Area */}
-          <div
-            className={`relative border-2 border-dashed rounded-lg p-8 text-center transition duration-300 ${
-              dragActive 
-                ? 'border-gray-500 bg-gray-100' 
-                : 'border-gray-300 hover:border-gray-400'
-            }`}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileInput}
-              className="hidden"
-            />
-            
-            {uploadedLogo ? (
-              <div className="flex flex-col items-center">
-                <div className="mb-4">
-                  <img 
-                    src={uploadedLogo.url} 
-                    alt="Uploaded logo" 
-                    className="max-w-xs max-h-32 object-contain rounded"
-                  />
-                </div>
-                <div className="text-sm text-gray-600 mb-4">
-                  <p className="font-medium">{uploadedLogo.name}</p>
-                  <p>{formatFileSize(uploadedLogo.size)} • {uploadedLogo.type}</p>
-                  <p>Uploaded: {uploadedLogo.uploadDate}</p>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition duration-200"
-                  >
-                    Replace Logo
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteConfirm('main')}
-                    className="bg-gray-100 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-200 transition duration-200"
-                  >
-                    Delete Logo
-                  </button>
+              <input
+                ref={mainLogoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/gif,image/svg+xml"
+                onChange={handleMainLogoInput}
+                className="hidden"
+              />
+              {/* Drag & Drop Area */}
+              <div
+                className={`relative border-2 border-dashed rounded-lg p-8 text-center transition duration-300 ${
+                  dragActive 
+                    ? 'border-gray-500 bg-white' 
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  mainLogoInputRef.current?.click();
+                }}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+              >
+                <div className="main-logo-upload-area">
+                  
+                  {uploadedLogo ? (
+                    <div className="flex flex-col items-center">
+                      <div className="mb-4">
+                        <img 
+                          src={uploadedLogo.url} 
+                          alt="Uploaded logo" 
+                          className="max-w-xs max-h-32 object-contain rounded"
+                        />
+                      </div>
+                      <div className="text-sm text-gray-600 mb-4">
+                        <p className="font-medium">{uploadedLogo.name}</p>
+                        <p>{formatFileSize(uploadedLogo.size)} • {uploadedLogo.type}</p>
+                        <p>Uploaded: {uploadedLogo.uploadDate}</p>
+                      </div>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            // Only trigger if clicking the button
+                            if (e.currentTarget === e.target) {
+                              mainLogoInputRef.current?.click();
+                            }
+                          }}
+                          className="bg-white text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-50 transition duration-200 border border-gray-300"
+                        >
+                          Replace Logo
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            deleteLogoFromLocation('main');
+                          }}
+                          className="bg-white text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-50 transition duration-200"
+                        >
+                          Delete Logo
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="text-6xl mb-4"></div>
+                      <h3 className="text-xl font-medium text-gray-700 mb-2">Upload Your Logo</h3>
+                      <p className="text-gray-500 mb-4">
+                        Drag and drop your logo file here, or click to select
+                      </p>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          mainLogoInputRef.current?.click();
+                        }}
+                        className="bg-white text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition duration-200"
+                      >
+                        Choose File
+                      </button>
+                      <p className="text-sm text-gray-400 mt-2">
+                        Supports PNG, JPG, JPEG, GIF, SVG
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
-            ) : (
-              <div>
-                <div className="text-6xl mb-4"></div>
-                <h3 className="text-xl font-medium text-gray-700 mb-2">Upload Your Logo</h3>
-                <p className="text-gray-500 mb-4">
-                  Drag and drop your logo file here, or click to select
-                </p>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition duration-200"
+            </div>
+          </div>
+          
+          {/* Favicon Upload Section */}
+          <div className="md:col-span-1 border border-gray-400">
+            <div className="bg-white rounded-lg border border-gray-200 p-6 h-full">
+              <div className="flex items-center gap-2 mb-4 border-b pb-2">
+                <Bookmark className="w-5 h-5 text-gray-600" />
+                <h2 className="text-xl font-semibold text-gray-700">Favicon</h2>
+              </div>
+              
+              <div className="text-sm text-gray-600 mb-4">
+                <p>Website browser icon</p>
+                <p className="mt-1">Recommended: 32x32px</p>
+                <p className="mt-1 font-medium">Supports: SVG, PNG only</p>
+              </div>
+
+              <input
+                ref={faviconInputRef}
+                type="file"
+                accept="image/svg+xml,image/png"
+                className="hidden"
+                onChange={handleFaviconInput}
+              />
+              {logoAssignments.favicon ? (
+                <div className="space-y-4">
+                  <div className="bg-white p-4 rounded border border-gray-200 flex flex-col items-center">
+                    <img 
+                      src={logoAssignments.favicon.url} 
+                      alt="Current favicon"
+                      className="w-8 h-8 mb-2"
+                    />
+                    <p className="text-sm text-gray-600">Current Favicon</p>
+                    {logoAssignments.favicon.name && (
+                      <p className="text-xs text-gray-500 mt-1">{logoAssignments.favicon.name}</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        faviconInputRef.current?.click();
+                      }}
+                      className="flex-1 bg-white text-gray-700 py-2 px-3 rounded text-sm hover:bg-gray-50 transition duration-200 border border-gray-300"
+                    >
+                      Change
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        deleteLogoFromLocation('favicon');
+                      }}
+                      className="flex-1 bg-white text-gray-700 py-2 px-3 rounded text-sm hover:bg-gray-50 transition duration-200"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="border-2 border-dashed rounded-lg p-6 text-center hover:border-gray-400 transition duration-300 cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    faviconInputRef.current?.click();
+                  }}
                 >
-                  Choose File
-                </button>
-                <p className="text-sm text-gray-400 mt-2">
-                  Supports PNG, JPG, JPEG, GIF, SVG
-                </p>
-              </div>
-            )}
+                  <div className="favicon-upload-area">
+                    <Bookmark className="w-8 h-8 mx-auto mb-3 text-gray-400" />
+                    <p className="text-sm text-gray-600">
+                      Click to upload favicon
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Logo Assignment Section */}
-        {uploadedLogo && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold text-gray-700">Assign Logo to Locations</h2>
-              <button
-                onClick={clearAllLogos}
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition duration-200 text-sm"
-              >
-                Clear All
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {logoTypes.map(({ key, label, icon, description }) => (
-                <div key={key} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition duration-200">
-                  <div className="flex items-center mb-3">
-                    <span className="text-2xl mr-3">{icon}</span>
-                    <div>
-                      <h3 className="font-semibold text-gray-800">{label}</h3>
-                      <p className="text-sm text-gray-500">{description}</p>
-                    </div>
+        {/* Logo Assignments Section */}
+        <div className="mt-12 px-4 border border-gray-400 bg-transparent">
+          <h2 className="text-2xl font-bold mb-6 text-gray-800">Logo Assignments</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {logoTypes.map((type) => {
+              const IconComponent = type.icon;
+              const hasLogo = logoAssignments[type.key] !== null;
+              
+              return (
+                <div key={type.key} className="bg-white rounded-lg border border-gray-200 p-6 min-h-[280px] flex flex-col">
+                  <div className="flex items-center gap-2 mb-4">
+                    <IconComponent className="w-6 h-6 text-gray-600" />
+                    <h3 className="font-semibold text-gray-700 text-lg">{type.label}</h3>
                   </div>
                   
-                  {logoAssignments[key] ? (
-                    <div className="space-y-3">
-                      <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                  {hasLogo ? (
+                    <div className="space-y-4 flex-1 flex flex-col">
+                      <div className="flex-1 flex items-center justify-center p-6 bg-white rounded-lg border border-gray-200">
                         <img 
-                          src={logoAssignments[key].url} 
-                          alt={`${label} logo`}
-                          className="max-w-full max-h-16 object-contain mx-auto mb-2"
+                          src={logoAssignments[type.key].url}
+                          alt={`${type.label} logo`}
+                          className="max-h-32 max-w-[200px] object-contain"
                         />
-                        <p className="text-sm text-gray-700 text-center">
-                          ✓ Logo assigned
-                        </p>
                       </div>
-                      
-                      {editingLocation === key ? (
-                        <div className="space-y-2">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              if (e.target.files && e.target.files[0]) {
-                                replaceLogoForLocation(key, e.target.files[0]);
-                              }
-                            }}
-                            className="w-full text-sm border border-gray-300 rounded px-2 py-1"
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => setEditingLocation(null)}
-                              className="flex-1 bg-gray-100 text-gray-700 py-1 px-2 rounded text-sm hover:bg-gray-200 transition duration-200"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => editLogoAssignment(key)}
-                            className="flex-1 bg-gray-600 text-white py-2 px-3 rounded text-sm hover:bg-gray-700 transition duration-200"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => confirmDeleteLocation(key)}
-                            className="flex-1 bg-gray-100 text-gray-700 py-2 px-3 rounded text-sm hover:bg-gray-200 transition duration-200"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => removeLogoFromType(type.key)}
+                          className="flex-1 py-2.5 px-4 text-sm bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50"
+                        >
+                          Remove
+                        </button>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          id={`replace-${type.key}`}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleMainLogoUpload(file, type.key);
+                            }
+                            e.target.value = '';
+                          }}
+                        />
+                        <button
+                          onClick={() => document.getElementById(`replace-${type.key}`).click()}
+                          className="flex-1 py-2.5 px-4 text-sm bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50"
+                        >
+                          Replace
+                        </button>
+                      </div>
                     </div>
                   ) : (
-                    <button
-                      onClick={() => assignLogoToType(key)}
-                      className="w-full bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition duration-200"
-                    >
-                      Assign Logo
-                    </button>
+                    <div className="flex-1 flex flex-col justify-center text-center p-6 border-2 border-dashed border-gray-300 rounded-lg bg-white">
+                      <p className="text-sm text-gray-600 mb-4 flex-1 flex items-center justify-center">{type.description}</p>
+                      <button
+                        onClick={() => {
+                          if (uploadedLogo) {
+                            setLogoAssignments(prev => ({
+                              ...prev,
+                              [type.key]: uploadedLogo
+                            }));
+                          }
+                        }}
+                        disabled={!uploadedLogo}
+                        className={`text-sm px-4 py-2.5 rounded-lg font-medium ${
+                          uploadedLogo
+                            ? 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                            : 'bg-white text-gray-400 cursor-not-allowed border border-gray-200'
+                        }`}
+                      >
+                        Assign Logo
+                      </button>
+                    </div>
                   )}
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        )}
-
-       
-
-        {/* Delete Confirmation Modal */}
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-xl">
-              <div className="flex items-center mb-4">
-                <div className="text-2xl mr-3">⚠️</div>
-                <h3 className="text-lg font-semibold text-gray-800">
-                  Confirm Delete
-                </h3>
-              </div>
-              
-              <p className="text-gray-600 mb-6">
-                {showDeleteConfirm === 'main' 
-                  ? 'Are you sure you want to delete the uploaded logo? This will remove it from all locations.'
-                  : `Are you sure you want to remove the logo from ${logoTypes.find(t => t.key === showDeleteConfirm)?.label}?`
-                }
-              </p>
-              
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(null)}
-                  className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded hover:bg-gray-200 transition duration-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => showDeleteConfirm === 'main' ? deleteUploadedLogo() : deleteLogoFromLocation(showDeleteConfirm)}
-                  className="flex-1 bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition duration-200"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
-}
+} 

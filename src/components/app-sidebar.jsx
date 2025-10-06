@@ -16,6 +16,12 @@ import {
   PieChart,
   Settings2,
   SquareTerminal,
+  Terminal,
+  UserCheck,
+  UserCog,  UserPlus,
+  User,
+  Zap,
+  ShoppingCart
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -63,35 +69,35 @@ const data = {
       key: "logo",
     },
     {
-      title: "Services",
-      url: "/services",
-      icon: Bot,
-      key: "services",
+      title: "Service",
+      url: "/Services",
+      icon: Handshake,
+      key: "s",
     },
     {
       title: "Products",
       url: "/products",
-      icon: Frame,
+      icon: ShoppingCart,
       key: "products",
     },
     {
-      title: "Blog Page",
+      title: "Blogs",
       url: "/blog",
       icon: BookOpen,
       key: "blog",
     },
     {
       title: "Contact",
-      url: "/contact",
-      icon: Command,
-      key: "contact",
+      url: "/Contact",
+      icon: User,
+      key: "Contact",
     },
   ],
 }
 
 export function AppSidebar(props) {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" className="bg-white" {...props}>
       <SidebarHeader className="flex-shrink-0">
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>

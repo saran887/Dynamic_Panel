@@ -1,6 +1,6 @@
 import React from 'react';
 
-const NutzLogo = ({ className = "w-full h-full" }) => {
+const NutzLogo = ({ className = "w-48 h-32" }) => {
   return (
     <svg 
       className={className}

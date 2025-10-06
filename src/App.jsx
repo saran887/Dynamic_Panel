@@ -28,7 +28,7 @@ import { useIsMobile } from "./hooks/use-mobile"
 // Lib
 
 
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Contact from "./Contact";
 
 import LogoPage from "./LogoPage";
@@ -43,11 +43,12 @@ export default function App() {
   return (
     <Router>
       <SidebarProvider>
-        <div className="flex w-full h-screen bg-gray-50 overflow-hidden">
+        <div className="flex w-full h-screen overflow-hidden">
           <AppSidebar />
-          <main className="flex-1 h-full overflow-auto">
+          <Separator orientation="vertical" className="h-full" />
+          <main className="flex-1 h-full overflow-auto bg-white p-6">
             <Routes>
-              
+              <Route path="/" element={<Navigate to="/logo" replace />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/logo" element={<LogoPage />} />
               <Route path="/services" element={<ServicesPage />} />
